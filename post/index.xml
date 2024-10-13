@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Posts on #SPHERE</title>
+    <link>https://spherelab-vumc.github.io/post/</link>
+    <description>Recent content in Posts on #SPHERE</description>
+    <generator>Hugo</generator>
+    <language>en</language>
+    <copyright>© 2024, qiantong.wang</copyright>
+    <lastBuildDate>Thu, 10 Oct 2024 00:00:00 +0000</lastBuildDate>
+    <atom:link href="https://spherelab-vumc.github.io/post/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Welcome to #SPHERE Lab</title>
+      <link>https://spherelab-vumc.github.io/post/1/</link>
+      <pubDate>Thu, 10 Oct 2024 00:00:00 +0000</pubDate>
+      <guid>https://spherelab-vumc.github.io/post/1/</guid>
+      <description>&lt;p&gt;&lt;img src=&#34;https://miro.medium.com/v2/resize:fit:640/format:webp/0*yTIojGVzbbpEl35B.png&#34; alt=&#34;Welcome Image&#34;&gt; &lt;!-- 替换为实际的图片 URL --&gt;&lt;/p&gt;</description>
+    </item>
+  </channel>
+</rss>
