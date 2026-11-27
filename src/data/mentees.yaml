@@ -1,0 +1,16 @@
+# Former students and interns supervised in the lab (from CV_YIN.pdf, "Supervision of Research Program").
+# Shown as a compact list under "Alumni" on the People page. Newest first is applied automatically.
+# For alumni who should have a photo and profile page, add a file in src/content/people/ with role "alumni" instead.
+- { name: "Qiantong Wang", role: "M.S. student, Computer Science", affiliation: "Vanderbilt University", years: "2024–2025", topic: "Hallucination detection in large language models" }
+- { name: "Leyao Wang", role: "Undergraduate researcher, Computer Science & Mathematics", affiliation: "Vanderbilt University", years: "2023", topic: "Review of applications of large language models in biomedical informatics" }
+- { name: "Jessie Yang", role: "Summer intern, DBMI", affiliation: "Vanderbilt University", years: "2023", topic: "Large language models for identifying medication discontinuation in online breast cancer discussions" }
+- { name: "Ndidiamaka Obi", role: "Summer intern, DBMI", affiliation: "Meharry Medical College", years: "2023", topic: "Assessing ChatGPT's responses to informal dementia caregivers' online questions" }
+- { name: "Yi Xin", role: "M.S. student, Computer Science", affiliation: "", years: "2023", topic: "Mining online discussions of rheumatoid arthritis on Reddit" }
+- { name: "Sneh Patel", role: "Undergraduate researcher, Computer Science", affiliation: "", years: "2022–2023", topic: "A robust web crawler for multiple online health communities" }
+- { name: "Jatin Krishna Sai Kodali", role: "M.S. student, Computer Science", affiliation: "", years: "2022", topic: "Review of transplantation prediction using UNOS data" }
+- { name: "Kerou Cheng", role: "Undergraduate researcher, Computer Science", affiliation: "", years: "2019–2022", topic: "Needs of informal dementia caregivers in online communities, via topic modeling" }
+- { name: "Andrew Nam", role: "Undergraduate researcher, Computer Science", affiliation: "", years: "2021", topic: "Detecting online Alzheimer's caregiving discussions with machine learning" }
+- { name: "Ali Yaqoob", role: "M.S. student, Data Science (capstone)", affiliation: "", years: "2020", topic: "Predicting suicidal intention from Reddit data" }
+- { name: "Jonathan Hughes", role: "Summer intern, DBMI", affiliation: "Lipscomb University", years: "2020", topic: "Online discussions of caring for people with Alzheimer's and dementia on Reddit" }
+- { name: "Michael Kaltman", role: "Summer intern, DBMI", affiliation: "The Ohio State University", years: "2019", topic: "Contribution of patient portal messages to structured EHR data" }
+- { name: "Sikta Swarnav Das", role: "Summer intern, DBMI", affiliation: "New Mexico State University", years: "2019", topic: "Patient portal messages and hormonal therapy discontinuation" }

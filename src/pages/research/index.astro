@@ -1,0 +1,34 @@
+---
+import Base from '../../layouts/Base.astro';
+import ResearchPrograms from '../../components/ResearchPrograms.astro';
+import { loadAll, site, numberWord } from '../../lib/data';
+
+const all = await loadAll();
+const { programs, directions } = all;
+const rc = site.research ?? { headline: 'Research' };
+---
+<Base title="Research" description="Research programs and directions of the SPHERE Lab at Vanderbilt University Medical Center.">
+  <div class="wrap">
+    <header class="page-head">
+      <div class="hero-head">
+        <p class="kicker">Research</p>
+        <h1 class="headline">{rc.headline}</h1>
+      </div>
+      <div class="hero-text measure">
+        {rc.lede && <p class="lede">{rc.lede}</p>}
+        <p class="count">{numberWord(programs.length, true)} programs · {numberWord(directions.length)} directions</p>
+      </div>
+    </header>
+  </div>
+
+  <div class="wrap">
+    <ResearchPrograms />
+  </div>
+</Base>
+
+<style>
+  .page-head h1 { margin: 0.6rem 0 1.2rem; max-width: 18ch; }
+  .measure { max-width: 40rem; }
+  .page-head h1.headline { max-width: none; white-space: nowrap; font-size: clamp(2.1rem, 8.5vw, 4.4rem); letter-spacing: -0.025em; margin-bottom: 0.4rem; }
+  .count { font-family: var(--sans); font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin: 0; }
+</style>

@@ -1,0 +1,22 @@
+---
+// Content lives in src/content/pages/teaching.md
+import Base from '../layouts/Base.astro';
+import PageSections from '../components/PageSections.astro';
+import { getEntry } from 'astro:content';
+import { pageSections } from '../lib/markdown';
+
+const page = (await getEntry('pages', 'teaching'))!;
+const sections = await pageSections(page.body ?? '');
+---
+<Base title={page.data.kicker} description={page.data.description}>
+  <div class="wrap">
+    <header class="page-head folio">
+      <div>
+        <p class="kicker">{page.data.kicker}</p>
+        <h1>{page.data.title}</h1>
+        {page.data.lede && <p class="lede">{page.data.lede}</p>}
+      </div>
+    </header>
+    <PageSections sections={sections} />
+  </div>
+</Base>

@@ -1,0 +1,160 @@
+---
+/**
+ * "Featured work" on the Home page: a row of cards that becomes a swipeable slider when there are more cards
+ * than fit (manual only: swipe, trackpad, or the arrow buttons; no autoplay).
+ *
+ * Papers marked in src/data/publications.yaml with "featured": true, or a number to set the order (1 = first),
+ * optionally with "venueShort": "CHI 2026". Numbered papers come first; the rest follow in program order (I, II, III),
+ * newest first. If fewer than three are marked, the newest lab-led peer-reviewed papers fill the remaining slots.
+ * The maximum number shown is home.sections.featured.count in src/data/site.yaml.
+ */
+import { loadAll, nameKey, TYPE_LABEL, programColor, paperLink, type Publication } from '../lib/data';
+
+interface Props { count?: number; title?: string }
+const { count = 3, title = 'Featured work' } = Astro.props;
+
+const all = await loadAll();
+const { pubs, programs, memberKeys, piKey } = all;
+const progIndex = new Map(programs.map((p, i) => [p.id, i]));
+const progOf = (p: Publication) => progIndex.get(p.programs[0] ?? '') ?? 99;
+const rank = (p: Publication) => (typeof p.featured === 'number' ? p.featured : Infinity);
+const flagged = pubs
+  .filter((p) => p.featured)
+  .sort((a, b) => rank(a) - rank(b) || progOf(a) - progOf(b) || b.year - a.year);
+const MIN = 3;
+const fill = flagged.length < MIN
+  ? pubs.filter((p) => !p.featured && p.labLed && (p.type === 'journal' || p.type === 'conference')).slice(0, MIN - flagged.length)
+  : [];
+const cards: Publication[] = [...flagged, ...fill].slice(0, Math.max(count, MIN));
+const sliding = cards.length > 3;
+
+// Short author line: first author, any lab members, and the PI; "et al." for the rest
+function authorLine(p: Publication) {
+  const keep = p.authors.filter((a, i) => i === 0 || memberKeys.has(nameKey(a)) || nameKey(a) === piKey);
+  return { names: keep, more: p.authors.length > keep.length };
+}
+---
+<div class="feat" data-featured-slider>
+  <div class="feat-head">
+    <h2 id="featured-title">{title}</h2>
+    {sliding && (
+      <div class="controls">
+        <span class="count" aria-live="polite" data-count>1–3 of {cards.length}</span>
+        <button type="button" class="arrow" data-prev aria-label="Previous featured paper" disabled>‹</button>
+        <button type="button" class="arrow" data-next aria-label="Next featured paper">›</button>
+      </div>
+    )}
+  </div>
+<ul class:list={['featured', { sliding }]} role="region" aria-labelledby="featured-title" tabindex={sliding ? 0 : undefined}>
+  {cards.map((p) => {
+    const pi = progIndex.get(p.programs[0] ?? '') ?? -1;
+    const prog = pi >= 0 ? programs[pi] : undefined;
+    const href = paperLink(p).href; // the actual paper (DOI, arXiv, PMC), never the Publications page
+    const a = authorLine(p);
+    return (
+      <li style={`--c: ${pi >= 0 ? programColor(pi) : 'var(--accent)'}`}>
+        <a href={href} rel="noopener">
+          <span class="venue">{p.venueShort ?? `${TYPE_LABEL[p.type]} ${p.year}`}</span>
+          <span class="title">{p.title}</span>
+          <span class="authors">
+            {a.names.map((n, i) => {
+              const k = nameKey(n);
+              const cls = k === piKey ? 'pi' : memberKeys.has(k) ? 'mem' : '';
+              const sep = i < a.names.length - 1 ? ', ' : a.more ? ', et al.' : '';
+              const mk = (p.coFirst?.includes(n) ? '†' : '') + (p.coCorresponding?.includes(n) ? '*' : '');
+              return <><span class={cls}>{n}</span>{mk && <sup class="am" title={[p.coFirst?.includes(n) && 'Co-first author', p.coCorresponding?.includes(n) && 'Co-corresponding author'].filter(Boolean).join(', ')}>{mk}</sup>}{sep}</>;
+            })}
+          </span>
+          {prog && <span class="prog">{prog.data.short}</span>}
+        </a>
+      </li>
+    );
+  })}
+</ul>
+</div>
+
+<script>
+  // Arrow buttons and the "1–3 of 6" counter for the slider. Swiping works without this script.
+  document.querySelectorAll<HTMLElement>('[data-featured-slider]').forEach((root) => {
+    const track = root.querySelector<HTMLElement>('.featured.sliding');
+    if (!track) return;
+    const prev = root.querySelector<HTMLButtonElement>('[data-prev]')!;
+    const next = root.querySelector<HTMLButtonElement>('[data-next]')!;
+    const counter = root.querySelector<HTMLElement>('[data-count]')!;
+    const controls = root.querySelector<HTMLElement>('.controls')!;
+    const items = [...track.children] as HTMLElement[];
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const step = () => (items[1] ? items[1].offsetLeft - items[0].offsetLeft : track.clientWidth);
+    function update() {
+      const s = step();
+      const first = Math.round(track.scrollLeft / s);
+      const visible = Math.max(1, Math.floor((track.clientWidth + 8) / s));
+      const last = Math.min(items.length, first + visible);
+      counter.textContent = `${first + 1}–${last} of ${items.length}`;
+      prev.disabled = track.scrollLeft <= 2;
+      next.disabled = track.scrollLeft + track.clientWidth >= track.scrollWidth - 2;
+      controls.hidden = track.scrollWidth <= track.clientWidth + 2; // everything fits: no controls needed
+    }
+    const go = (dir: number) => {
+      track.scrollBy({ left: dir * step(), behavior: reduce ? 'instant' : 'smooth' });
+      setTimeout(update, 450); // safety net in case a browser skips scroll events
+    };
+    prev.addEventListener('click', () => go(-1));
+    next.addEventListener('click', () => go(1));
+    track.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight') { e.preventDefault(); go(1); }
+      if (e.key === 'ArrowLeft') { e.preventDefault(); go(-1); }
+    });
+    track.addEventListener('scroll', update, { passive: true });
+    track.addEventListener('scrollend', update);
+    addEventListener('resize', update);
+    update();
+  });
+</script>
+
+<style>
+  .feat-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem; }
+  .feat-head h2 { margin: 0; }
+  .controls { display: flex; align-items: center; gap: 0.4rem; font-family: var(--sans); }
+  .controls[hidden] { display: none; }
+  .count { font-family: var(--mono); font-size: 0.75rem; color: var(--muted); margin-right: 0.4rem; white-space: nowrap; }
+  .arrow {
+    width: 2.2rem; height: 2.2rem; display: grid; place-items: center; font-size: 1.3rem; line-height: 1;
+    border: 1px solid var(--rule); border-radius: 6px; background: var(--paper); color: var(--ink); cursor: pointer;
+  }
+  .arrow:hover:not(:disabled) { border-color: var(--ink); }
+  .arrow:disabled { opacity: 0.35; cursor: default; }
+  .arrow:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+  /* Static row (3 or fewer cards) */
+  .featured { list-style: none; margin: 0; padding: 0; display: grid; gap: 1.25rem; }
+  @media (min-width: 860px) { .featured:not(.sliding) { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+  /* Slider (4+ cards): native horizontal scrolling that snaps to cards; a sliver of the next card shows */
+  .featured.sliding {
+    grid-auto-flow: column; grid-auto-columns: calc((100% - 1.25rem) / 1.15);
+    overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory;
+    scroll-behavior: smooth; padding-bottom: 0.6rem; scrollbar-width: thin; scrollbar-color: var(--rule) transparent;
+  }
+  @media (min-width: 640px) { .featured.sliding { grid-auto-columns: calc((100% - 2 * 1.25rem) / 2.2); } }
+  @media (min-width: 960px) { .featured.sliding { grid-auto-columns: calc((100% - 3 * 1.25rem) / 3.2); } }
+  .featured.sliding > li { scroll-snap-align: start; }
+  .featured.sliding:focus-visible { outline: 2px solid var(--focus); outline-offset: 4px; }
+  @media (prefers-reduced-motion: reduce) { .featured.sliding { scroll-behavior: auto; } }
+  .featured a {
+    display: flex; flex-direction: column; gap: 0.7rem; height: 100%;
+    padding: 1.2rem 1.2rem 1.1rem; border: 1px solid var(--rule); border-top: 3px solid var(--c); border-radius: 6px;
+    text-decoration: none; color: var(--ink); background: var(--paper);
+    transition: border-color 0.2s;
+  }
+  .featured a:hover { border-color: var(--c); }
+  .featured a:hover .title { color: var(--c-ink); }
+  .featured a:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .venue { align-self: flex-start; font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--c-ink); border: 1px solid color-mix(in srgb, var(--c) 45%, transparent); border-radius: 4px; padding: 0.15rem 0.5rem; }
+  .title { font-family: var(--serif); font-size: 1.15rem; line-height: 1.3; }
+  .authors { font-family: var(--sans); font-size: 0.78rem; line-height: 1.5; color: var(--muted); }
+  .authors .mem { color: var(--mark); }
+  .authors .pi { color: var(--ink); font-weight: 600; }
+  .prog { margin-top: auto; font-family: var(--sans); font-size: 0.72rem; color: var(--muted); }
+  .am { font-size: 0.75em; margin-left: 0.05em; }
+</style>

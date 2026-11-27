@@ -1,0 +1,150 @@
+---
+import Base from '../layouts/Base.astro';
+import PubItem from '../components/PubItem.astro';
+import { loadAll, roman, linkById, TYPE_LABEL } from '../lib/data';
+
+const { people, programs, directions, pubs, memberKeys, piKey } = await loadAll();
+const years = [...new Set(pubs.map((p) => p.year))].sort((a, b) => b - a);
+const members = people.filter((p) => p.data.role !== 'pi' && pubs.some((x) => x.members.includes(p.id)));
+const TYPES = Object.entries(TYPE_LABEL).map(([k, l]) => [k, l.replace('Book chapter', 'Chapter')] as const);
+const scholar = linkById('scholar');
+---
+<Base title="Publications" description="Publications of the SPHERE Lab, grouped by year and filterable by program, direction, and lab member.">
+  <div class="wrap">
+    <header class="page-head folio">
+      <div>
+        <p class="kicker">Publications</p>
+        <h1>Publications</h1>
+        <p class="lede">
+          <span class="count" data-count>{pubs.length}</span> publications. Lab members are
+          <span class="mk">highlighted</span>.{scholar && <> See also <a href={scholar.href} rel="noopener">{scholar.label}</a>.</>}
+        </p>
+        <p class="marks-key"><span aria-hidden="true">†</span> co-first authors · <span aria-hidden="true">*</span> co-corresponding authors
+        </p>
+      </div>
+    </header>
+
+    <div class="filters no-print" role="search">
+      <label class="search">
+        <span class="label">Search</span>
+        <input type="search" placeholder="Title, author, venue…" data-q />
+      </label>
+      <div class="row">
+        <span class="label">Program</span>
+        {programs.map((p) => <button class="chip" type="button" aria-pressed="false" data-program={p.id}>{roman(p.data.number)}. {p.data.short}</button>)}
+      </div>
+      <label class="row">
+        <span class="label">Direction</span>
+        <select data-direction>
+          <option value="">All directions</option>
+          {directions.map((d) => <option value={d.id}>D{d.data.number}. {d.data.title}</option>)}
+          <option value="__other">Other collaborations</option>
+        </select>
+      </label>
+      <div class="row">
+        <span class="label">Authorship</span>
+        <button class="chip" type="button" aria-pressed="false" data-led="led">Lab-led</button>
+        <button class="chip" type="button" aria-pressed="false" data-led="collab">Collaboration</button>
+      </div>
+      <div class="row">
+        <span class="label">Type</span>
+        {TYPES.map(([k, l]) => <button class="chip" type="button" aria-pressed="false" data-type={k}>{l}</button>)}
+      </div>
+      <label class="row">
+        <span class="label">Member</span>
+        <select data-member>
+          <option value="">Anyone</option>
+          {members.map((p) => <option value={p.id}>{p.data.name}</option>)}
+        </select>
+      </label>
+    </div>
+
+    {years.map((y) => (
+      <section class="year" data-year={y}>
+        <h2 class="y">{y}</h2>
+        <ul class="plain">{pubs.filter((p) => p.year === y).map((p) => <PubItem pub={p} memberKeys={memberKeys} piKey={piKey} />)}</ul>
+      </section>
+    ))}
+    <p class="empty" hidden>No publications match these filters.</p>
+  </div>
+</Base>
+
+<script>
+  const q = document.querySelector<HTMLInputElement>('[data-q]')!;
+  const member = document.querySelector<HTMLSelectElement>('[data-member]')!;
+  const direction = document.querySelector<HTMLSelectElement>('[data-direction]')!;
+  const progBtns = [...document.querySelectorAll<HTMLButtonElement>('button[data-program]')];
+  const ledBtns = [...document.querySelectorAll<HTMLButtonElement>('button[data-led]')];
+  const typeBtns = [...document.querySelectorAll<HTMLButtonElement>('button[data-type]')];
+  const items = [...document.querySelectorAll<HTMLLIElement>('.pub')];
+  const years = [...document.querySelectorAll<HTMLElement>('.year')];
+  const count = document.querySelector('[data-count]')!;
+  const empty = document.querySelector<HTMLElement>('.empty')!;
+
+  const pressed = (btns: HTMLButtonElement[], key: 'program' | 'type' | 'led') =>
+    btns.filter((b) => b.getAttribute('aria-pressed') === 'true').map((b) => b.dataset[key]!);
+
+  function apply() {
+    const text = q.value.trim().toLowerCase();
+    const pr = pressed(progBtns, 'program');
+    const ld = pressed(ledBtns, 'led');
+    const dir = direction.value;
+    const ty = pressed(typeBtns, 'type');
+    const m = member.value;
+    let n = 0;
+    for (const li of items) {
+      const ok =
+        (!text || li.dataset.text!.includes(text)) &&
+        (!pr.length || pr.some((t) => li.dataset.programs!.split(' ').includes(t))) &&
+        (!dir || (dir === '__other' ? li.dataset.directions === '' : li.dataset.directions!.split(' ').includes(dir))) &&
+        (!ld.length || ld.includes(li.dataset.led!)) &&
+        (!ty.length || ty.includes(li.dataset.type!)) &&
+        (!m || li.dataset.members!.split(' ').includes(m));
+      li.hidden = !ok;
+      if (ok) n++;
+    }
+    years.forEach((y) => (y.hidden = !y.querySelector('.pub:not([hidden])')));
+    count.textContent = String(n);
+    empty.hidden = n > 0;
+  }
+  [...progBtns, ...typeBtns, ...ledBtns].forEach((b) =>
+    b.addEventListener('click', () => {
+      b.setAttribute('aria-pressed', String(b.getAttribute('aria-pressed') !== 'true'));
+      apply();
+    }),
+  );
+  q.addEventListener('input', apply);
+  member.addEventListener('change', apply);
+  direction.addEventListener('change', apply);
+  const qs = new URLSearchParams(location.search);
+  if (qs.get('member')) member.value = qs.get('member')!;
+  if (qs.get('direction')) direction.value = qs.get('direction')!;
+  if (qs.get('member') || qs.get('direction')) apply();
+</script>
+
+<style>
+  .mk { color: var(--mark); font-weight: 500; }
+  .marks-key { font-family: var(--sans); font-size: 0.82rem; color: var(--muted); margin: -0.4rem 0 0; }
+  .filters { display: grid; gap: 0.8rem; padding: 1.2rem 0 1.6rem; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--rule); margin-bottom: 1rem; }
+  .row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.45rem; }
+  .label { min-width: 4.5rem; }
+  .search { display: flex; align-items: center; gap: 0.45rem; }
+  input[type='search'], select {
+    font-family: var(--sans); font-size: 0.9rem; color: var(--ink); background: var(--paper);
+    border: 1px solid var(--rule); border-radius: 6px; padding: 0.5rem 0.7rem; min-width: 0; max-width: 100%;
+  }
+  select { text-overflow: ellipsis; }
+  .filters, .row, .search { min-width: 0; }
+  @media (max-width: 560px) {
+    .search, label.row { flex-wrap: wrap; }
+    .search input, label.row select { flex: 1 1 100%; width: 100%; }
+  }
+  input[type='search'] { flex: 1; max-width: 28rem; }
+  input:focus, select:focus { border-color: var(--accent); outline: none; }
+  .year { display: grid; gap: 0 2rem; padding-top: 1.5rem; }
+  .year[hidden] { display: none; }
+  @media (min-width: 900px) { .year { grid-template-columns: 7rem 1fr; } }
+  .y { font-family: var(--mono); font-size: 1rem; font-weight: 500; color: var(--accent); padding-top: 1rem; position: sticky; top: 5rem; align-self: start; }
+  .plain { list-style: none; padding: 0; margin: 0; }
+  .empty { font-style: italic; color: var(--muted); padding: 2rem 0; }
+</style>

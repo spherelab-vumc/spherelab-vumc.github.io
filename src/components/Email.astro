@@ -1,0 +1,29 @@
+---
+/**
+ * Spam-resistant email link.
+ * The built HTML never contains the plain address or "mailto:": the address is stored reversed and base64-encoded
+ * in a data attribute and assembled in the browser. Visitors without JavaScript see "name [at] domain".
+ *
+ * Props:
+ *   address  "name@domain" or "name [at] domain" (config files use the [at] form so the address is not plain on GitHub)
+ *   label    optional link text (e.g. "Email"); defaults to the address itself
+ */
+interface Props { address: string; label?: string; class?: string }
+const { address, label, class: cls } = Astro.props;
+const plain = address.replace(/\s*\[at\]\s*/i, '@').replace(/\s*\[dot\]\s*/gi, '.').trim();
+const encoded = Buffer.from(plain.split('').reverse().join(''), 'utf-8').toString('base64');
+const fallback = plain.replace('@', ' [at] ');
+---
+<a class:list={['eml', cls]} href="#" data-e={encoded} data-label={label ? '1' : undefined} rel="nofollow">{label ?? fallback}</a>
+
+<script>
+  // Decode once per page: reverse(base64) -> address
+  document.querySelectorAll<HTMLAnchorElement>('a.eml[data-e]').forEach((a) => {
+    try {
+      const addr = atob(a.dataset.e!).split('').reverse().join('');
+      a.href = 'mailto:' + addr;
+      if (!a.dataset.label) a.textContent = addr;
+      a.removeAttribute('data-e');
+    } catch (e) {}
+  });
+</script>

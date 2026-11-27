@@ -1,0 +1,83 @@
+---
+import Base from '../../layouts/Base.astro';
+import PubItem from '../../components/PubItem.astro';
+import Email from '../../components/Email.astro';
+import { render } from 'astro:content';
+import { loadAll, personDirections, initials, url, ROLE_LABEL, type Person } from '../../lib/data';
+
+export async function getStaticPaths() {
+  const { people } = await loadAll();
+  return people.map((p) => ({ params: { slug: p.id }, props: { person: p } }));
+}
+const { person } = Astro.props as { person: Person };
+const { directions, pubs, memberKeys, piKey } = await loadAll();
+const { Content } = await render(person);
+const d = person.data;
+const hasBio = (person.body ?? '').replace(/<!--[\s\S]*?-->/g, '').trim().length > 0;
+const isPi = d.role === 'pi';
+const mine = isPi ? pubs.filter((p) => p.type !== 'abstract' && p.labLed).slice(0, 15) : pubs.filter((p) => p.members.includes(person.id));
+const tmap = isPi ? new Map(directions.map((t) => [t.id, 1])) : personDirections(person, pubs);
+const myDirections = directions.filter((t) => tmap.has(t.id));
+const years = d.until ? `${d.since ?? ''}–${d.until}` : d.since ? `${d.since}–present` : '';
+const linkLabels: Record<string, string> = { email: 'Email', website: 'Website', scholar: 'Google Scholar', github: 'GitHub', linkedin: 'LinkedIn' };
+---
+<Base title={d.name} description={`${d.name}, ${d.title}, ${'SPHERE Lab'}`}>
+  <div class="wrap">
+    <header class="page-head folio">
+      <div class="head-grid">
+        {d.photo ? (
+          <img class="portrait" src={url(d.photo)} alt={`Portrait of ${d.name}`} />
+        ) : (
+          <div class="portrait" aria-hidden="true">{initials(d.name)}</div>
+        )}
+        <div>
+          <p class="kicker"><a href={url('/people/')}>People</a> · {ROLE_LABEL[d.role]}</p>
+          <h1>{d.name}{d.credentials && <span class="cred">, {d.credentials}</span>}</h1>
+          <p class="role">{d.title}{d.program && !d.title.includes(d.program) && <>, {d.program}</>}</p>
+          {d.now && <p class="role">Now: {d.now}</p>}
+          <ul class="links">
+            {Object.entries(d.links).filter(([, v]) => v).map(([k, v]) => (
+              <li>{k === 'email' ? <Email address={v as string} label="Email" /> : <a href={v} rel="noopener">{linkLabels[k] ?? k}</a>}</li>
+            ))}
+          </ul>
+        </div>
+      </div>
+      <aside class="sidenote">
+        {years && <p><strong>In the lab</strong><br />{years}</p>}
+        {d.education.length > 0 && <p><strong>Education</strong>{d.education.map((e) => <><br />{e}</>)}</p>}
+        {myDirections.length > 0 && (
+          <p><strong>Research directions</strong><br />
+            {myDirections.map((t, i) => <><a href={url(`/research/${t.id}/`)}>{t.data.short}</a>{i < myDirections.length - 1 ? ', ' : ''}</>)}
+          </p>
+        )}
+      </aside>
+    </header>
+
+    {hasBio && (
+      <section class="section folio"><div class="prose"><Content /></div></section>
+    )}
+
+    {mine.length > 0 && (
+      <section class="section">
+        <div class="section-head">
+          <span class="section-num">{isPi ? '' : mine.length}</span>
+          <h2>{isPi ? 'Recent publications' : 'Publications with the lab'}</h2>
+        </div>
+        <ul class="plain">{mine.map((p) => <PubItem pub={p} memberKeys={memberKeys} piKey={piKey} />)}</ul>
+        {isPi && <p><a class="more" href={url('/publications/')}>All publications →</a></p>}
+      </section>
+    )}
+  </div>
+</Base>
+
+<style>
+  .page-head { padding: 4rem 0 2rem; }
+  .head-grid { display: grid; gap: 1.5rem; align-items: end; }
+  @media (min-width: 640px) { .head-grid { grid-template-columns: 10rem 1fr; gap: 2rem; } }
+  .head-grid .portrait { max-width: 10rem; }
+  h1 { font-size: clamp(2.2rem, 5vw, 3.4rem); margin: 0.4rem 0 0.5rem; }
+  .kicker a { color: inherit; }
+  .cred { font-size: 0.55em; color: var(--muted); letter-spacing: 0; }
+  .role { font-family: var(--sans); font-size: 0.92rem; color: var(--ink-2); margin: 0 0 0.3rem; }
+  .links { list-style: none; padding: 0; margin: 0.8rem 0 0; display: flex; flex-wrap: wrap; gap: 0.4rem 1.2rem; font-family: var(--sans); font-size: 0.88rem; }
+</style>

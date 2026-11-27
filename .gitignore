@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.astro/
+.DS_Store
+# Source CV is kept locally, not published
+CV_YIN.pdf
+
+# Original headshots (processed copies go to public/images/people/)
+headshots/

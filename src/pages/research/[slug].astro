@@ -1,0 +1,85 @@
+---
+import Base from '../../layouts/Base.astro';
+import PubItem from '../../components/PubItem.astro';
+import PersonCard from '../../components/PersonCard.astro';
+import { render } from 'astro:content';
+import { loadAll, directionStats, roman, url, programColor, type Direction } from '../../lib/data';
+
+export async function getStaticPaths() {
+  const { directions } = await loadAll();
+  return directions.map((d) => ({ params: { slug: d.id }, props: { direction: d } }));
+}
+const { direction } = Astro.props as { direction: Direction };
+const all = await loadAll();
+const { people, programs, directions, pubs, memberKeys, piKey } = all;
+const { Content } = await render(direction);
+const program = programs.find((p) => p.id === direction.data.program)!;
+const pIndex = programs.indexOf(program);
+const s = directionStats(direction.id, all);
+const papers = pubs.filter((p) => p.directions.includes(direction.id));
+const team = people.filter((p) => s.members.includes(p.id) && p.data.role !== 'alumni');
+const i = directions.findIndex((d) => d.id === direction.id);
+const prev = directions[i - 1], next = directions[i + 1];
+---
+<Base title={direction.data.title} description={direction.data.summary}>
+  <div class="wrap" style={`--c: ${programColor(pIndex)}`}>
+    <header class="page-head folio">
+      <div>
+        <p class="kicker">
+          <a href={url('/research/')}>Research</a> ·
+          <a href={url(`/research/#program-${program.id}`)}>Program {roman(program.data.number)}: {program.data.short}</a>
+        </p>
+        <h1><span class="dn">D{direction.data.number}</span>{direction.data.title}</h1>
+        <p class="lede">{direction.data.summary}</p>
+      </div>
+      <aside class="sidenote">
+        <p><strong>{s.led}</strong> lab-led · <strong>{s.collab}</strong> collaborative papers{s.total > 0 && <>, {s.first}–{s.last}</>}</p>
+        {s.grants.map((g) => (
+          <p><strong>{g.funder}</strong><br />{g.title} ({g.role})</p>
+        ))}
+      </aside>
+    </header>
+
+    <section class="section folio"><div class="prose"><Content /></div></section>
+
+    {direction.data.questions.length > 0 && (
+      <section class="section folio">
+        <div>
+          <div class="section-head"><span class="section-num">Q</span><h2>Questions we ask</h2></div>
+          <ol class="qs">{direction.data.questions.map((q) => <li>{q}</li>)}</ol>
+        </div>
+      </section>
+    )}
+
+    {team.length > 0 && (
+      <section class="section">
+        <div class="section-head"><span class="section-num">{team.length}</span><h2>People</h2></div>
+        <div class="grid">
+          {team.map((p) => <PersonCard person={p} paperCount={papers.filter((x) => x.members.includes(p.id)).length} />)}
+        </div>
+      </section>
+    )}
+
+    <section class="section">
+      <div class="section-head"><span class="section-num">{papers.length}</span><h2>Papers</h2></div>
+      <ul class="plain">{papers.map((p) => <PubItem pub={p} memberKeys={memberKeys} piKey={piKey} />)}</ul>
+    </section>
+
+    <nav class="pager" aria-label="Other directions">
+      {prev ? <a href={url(`/research/${prev.id}/`)}>← D{prev.data.number} {prev.data.short}</a> : <span />}
+      {next ? <a href={url(`/research/${next.id}/`)}>D{next.data.number} {next.data.short} →</a> : <span />}
+    </nav>
+  </div>
+</Base>
+
+<style>
+  .page-head { padding: 4rem 0 2rem; }
+  .page-head h1 { margin: 0.6rem 0 1.2rem; }
+  .dn { display: block; font-family: var(--mono); font-size: 0.9rem; color: var(--c-ink); margin-bottom: 0.4rem; letter-spacing: 0; }
+  .kicker a { color: inherit; }
+  .sidenote { border-left-color: var(--c); }
+  .qs { padding-left: 1.4rem; }
+  .qs li { font-size: 1.2rem; font-style: italic; color: var(--ink-2); margin-bottom: 0.6rem; }
+  .qs li::marker { font-family: var(--mono); font-size: 0.8rem; color: var(--c-ink); font-style: normal; }
+  .pager { display: flex; justify-content: space-between; gap: 1rem; margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--rule); font-family: var(--sans); font-size: 0.88rem; }
+</style>

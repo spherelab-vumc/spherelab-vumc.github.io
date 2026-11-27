@@ -1,0 +1,54 @@
+---
+// Text lives in src/content/pages/join.md; contact details come from src/data/site.yaml
+import Base from '../layouts/Base.astro';
+import PageSections from '../components/PageSections.astro';
+import Email from '../components/Email.astro';
+import { getEntry } from 'astro:content';
+import { pageSections } from '../lib/markdown';
+import { site } from '../lib/data';
+
+const page = (await getEntry('pages', 'join'))!;
+const sections = await pageSections(page.body ?? '');
+---
+<Base title={page.data.kicker} description={page.data.description}>
+  <div class="wrap">
+    <header class="page-head folio">
+      <div>
+        <p class="kicker">{page.data.kicker}</p>
+        <h1>{page.data.title}</h1>
+        {page.data.lede && <p class="lede">{page.data.lede}</p>}
+      </div>
+    </header>
+
+    <PageSections sections={sections} />
+
+    <section class="section folio">
+      <div>
+        <div class="section-head"><span class="section-num">§ {sections.length + 1}</span><h2>{page.data.contactHeading ?? 'Contact'}</h2></div>
+        <div class="contact">
+          <div>
+            <p class="label">Email</p>
+            <p><Email address={site.contact.email} /></p>
+          </div>
+          <div>
+            <p class="label">Office</p>
+            <address>{site.contact.address.map((l) => <>{l}<br /></>)}</address>
+          </div>
+          {site.links.length > 0 && (
+            <div>
+              <p class="label">Elsewhere</p>
+              <p>{site.links.map((l, i) => <><a href={l.href} rel="noopener">{l.label}</a>{i < site.links.length - 1 && <br />}</>)}</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  </div>
+</Base>
+
+<style>
+  .contact { display: grid; gap: 1.5rem; border-top: 1px solid var(--ink); padding-top: 1.2rem; }
+  @media (min-width: 640px) { .contact { grid-template-columns: repeat(3, 1fr); } }
+  .contact .label { margin-bottom: 0.3rem; }
+  address { font-style: normal; color: var(--ink-2); }
+</style>

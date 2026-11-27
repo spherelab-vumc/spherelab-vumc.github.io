@@ -1,0 +1,25 @@
+---
+/** Renders sections produced by pageSections() (src/lib/markdown.ts) in the editorial layout. */
+import type { PageSection } from '../lib/markdown';
+
+interface Props { sections: PageSection[]; start?: number }
+const { sections, start = 1 } = Astro.props;
+---
+{sections.map((s, i) => (
+  <section class="section folio">
+    <div>
+      <div class="section-head"><span class="section-num">§ {start + i}</span><h2>{s.heading}</h2></div>
+      {s.meta && <p class="meta" set:html={s.meta} />}
+      <div class="prose md" set:html={s.body} />
+    </div>
+    {s.sidenote && <aside class="sidenote" set:html={s.sidenote} />}
+  </section>
+))}
+
+<style>
+  h2 { max-width: 26ch; }
+  .meta { margin-bottom: 1rem; }
+  .md :global(ul), .md :global(ol) { padding-left: 1.3rem; }
+  .md :global(li) { margin-bottom: 0.5rem; color: var(--ink-2); }
+  .md :global(li::marker) { color: var(--accent); font-family: var(--mono); font-size: 0.85em; }
+</style>

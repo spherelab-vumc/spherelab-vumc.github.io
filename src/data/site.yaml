@@ -1,0 +1,74 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Site settings. Everything here can be edited without touching code;
+# save the file and the whole site updates.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── Identity ────────────────────────────────────────────────────────────────
+labName: "SPHERE Lab"
+labFullName: "Social Computing for Health and Well-Being Research Laboratory"
+subtitle: "Vanderbilt · Biomedical Informatics"   # small line under the lab name in the header
+institution: "Department of Biomedical Informatics, Vanderbilt University Medical Center"
+founded: 2018                                    # footer shows "© 2018–present"
+# Principal investigator: bolded in author lists, and used to decide which papers are lab-led
+# (lab-led = PI is first or last author, or a lab member is first author).
+pi: "Zhijun Yin"
+
+# ── Contact ─────────────────────────────────────────────────────────────────
+contact:
+  email: "zhijun.yin [at] vumc.org"   # written with [at] so it is not harvested from GitHub; shown correctly on the site
+  address:
+    - "Department of Biomedical Informatics"
+    - "2525 West End Ave, Suite 1475"
+    - "Nashville, TN 37203"
+# External profiles, shown in the footer and on the Join & Contact page (in this order).
+# id "scholar" is also used for the "See also Google Scholar" link on the Publications page.
+links:
+  - { id: "scholar", label: "Google Scholar", href: "https://scholar.google.com/citations?user=6-3JvK8AAAAJ&hl=en" }
+  - { id: "vumc", label: "VUMC faculty profile", href: "https://www.vumc.org/dbmi/person/zhijun-yin-phd-ms" }
+
+# ── Main menu (order = order in the header) ─────────────────────────────────
+nav:
+  - { href: "/research/", label: "Research" }
+  - { href: "/people/", label: "People" }
+  - { href: "/publications/", label: "Publications" }
+  - { href: "/teaching/", label: "Teaching" }
+  - { href: "/join/", label: "Join & Contact" }
+
+# ── Home page ───────────────────────────────────────────────────────────────
+home:
+  headline: "Trustworthy intelligence for healthcare that learns from people, and that people can supervise and audit."
+  mission: >-
+    We learn from the social interactions around health, alongside clinical records, voice, imaging, and omics,
+    to predict health behaviors and outcomes, make AI reliable for clinical use, and uncover disease mechanisms.
+  buttons:
+    - { label: "Explore our research", href: "/research/", primary: true }
+    - { label: "Join the lab", href: "/join/" }
+  # Section titles, and how many items each section shows
+  sections:
+    programs: { title: "Research programs" }
+    featured: { title: "Featured work", count: 6 }
+    news: { title: "News", count: 4 }
+    recent: { title: "Recent papers", count: 5 }
+
+# Numbers strip on the Home page. "auto:..." values are computed from the data:
+#   auto:publications (all works), auto:peer-reviewed (journal + conference), auto:preprints,
+#   auto:lab-led, auto:members (current, non-alumni)
+stats:
+  - { value: "auto:publications", label: "publications" }
+  - { value: "auto:lab-led", label: "lab-led papers" }
+  - { value: "$15M+", label: "research led or co-led" }
+  - { value: "auto:members", label: "current members" }
+
+# ── Research page ───────────────────────────────────────────────────────────
+research:
+  headline: "People, AI, and Health"
+  lede: >-
+    Learning from human experience, building AI that reasons reliably, and grounding findings in clinical and
+    molecular evidence.
+  # Funders listed in the "Supported by" line at the bottom of the Research page.
+  # Remove this list to generate it automatically from src/data/funding.yaml.
+  supportedBy: ["National Institutes of Health (NCI, NHGRI, NLM, OD)", "ARPA-H", "American Heart Association"]
+  # Short funder names used in the grant labels on each research direction
+  funderAbbreviations:
+    "National Cancer Institute": "NCI"
+    "American Heart Association": "AHA"

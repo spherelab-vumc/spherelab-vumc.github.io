@@ -1,0 +1,67 @@
+# Awarded grants. Shown on the Research pages (funder, title, role, years only).
+# Do NOT add pending applications here: this file is public on GitHub.
+# directions: ids from src/content/directions/ (leave [] to list it only under "All funding").
+- id: nci-r37-merit
+  funder: "National Cancer Institute (R37 MERIT Award)"
+  number: "R37CA237452"
+  title: "Prediction of Anti-Cancer Medication Discontinuation via Patient Portal Messages and Structured Electronic Medical Records"
+  role: "PI"
+  start: 2020
+  end: 2027
+  directions: [treatment-adherence]
+- id: arpah-vcares
+  funder: "ARPA-H"
+  number: "1AY2AX000044"
+  title: "Human-Centered Design of Ethical Evaluation Strategies for Chatbot Hallucinations in Healthcare (V-CARES)"
+  role: "Co-PI"
+  start: 2024
+  end: 2026
+  directions: [llm-reliability]
+- id: nci-r01-crc
+  funder: "National Cancer Institute (R01)"
+  number: "R01CA297582"
+  title: "Leveraging Omics and Electronic Health Records Data to Study Colorectal Adenoma Genetics and Drug Repurposing"
+  role: "Co-PI"
+  start: 2025
+  end: 2029
+  directions: [genetic-association, single-cell-omics]
+- id: aha-hf-llm
+  funder: "American Heart Association"
+  number: "24GWTGDRA1317558"
+  title: "Building a Large Language Model for Heart Failure Research Using AHA Get With The Guidelines Research Data"
+  role: "PI"
+  start: 2024
+  end: 2025
+  directions: [clinical-workflows]
+- id: getprecise
+  funder: "NIH NHGRI (RM1 ELSI Research Center)"
+  number: "RM1HG009034"
+  title: "Genetic Privacy and Identity in Community Settings (GetPreCise)"
+  role: "Co-I"
+  start: 2020
+  end: 2025
+  directions: [online-communities]
+- id: bridge2ai-fabric
+  funder: "NIH Bridge2AI (via Yale University)"
+  number: "U54HG012510"
+  title: "FAIR AI Bridge Center (FABRIC)"
+  role: "Co-I"
+  start: 2022
+  end: 2026
+  directions: []
+- id: aim-ahead
+  funder: "NIH AIM-AHEAD (via UNT Health Science Center)"
+  number: "OT2OD032581"
+  title: "RCMI Partnership: AIM-AHEAD Infrastructure Core"
+  role: "Co-I"
+  start: 2022
+  end: 2025
+  directions: []
+- id: best-ds2
+  funder: "NIH NLM (R25, via Meharry Medical College)"
+  number: "R25LM014216"
+  title: "Fisk-Meharry-Vanderbilt Biomedical Informatics Ecosystem to Support Talented Diverse Students in Data Science (BEST-DS2)"
+  role: "Co-I"
+  start: 2022
+  end: 2025
+  directions: []

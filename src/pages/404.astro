@@ -1,0 +1,16 @@
+---
+import Base from '../layouts/Base.astro';
+import { url } from '../lib/data';
+---
+<Base title="Page not found">
+  <div class="wrap nf">
+    <p class="kicker">Error 404</p>
+    <h1>This page is not in our dataset.</h1>
+    <p class="lede">It may have moved. Try the <a href={url('/')}>home page</a> or <a href={url('/publications/')}>publications</a>.</p>
+  </div>
+</Base>
+
+<style>
+  .nf { padding: 6rem 1rem; }
+  .nf h1 { margin: 0.6rem 0 1rem; max-width: 18ch; }
+</style>

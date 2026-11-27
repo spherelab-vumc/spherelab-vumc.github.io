@@ -1,0 +1,78 @@
+---
+import type { Publication } from '../lib/data';
+import { nameKey, url, site, TYPE_LABEL, paperLink } from '../lib/data';
+
+interface Props {
+  pub: Publication;
+  memberKeys: Map<string, string>; // nameKey -> person slug
+  piKey?: string;
+  compact?: boolean;
+}
+const { pub, memberKeys, piKey = nameKey(site.pi), compact = false } = Astro.props;
+const link = paperLink(pub);
+const doiUrl = pub.links.doi ? `https://doi.org/${pub.links.doi}` : '';
+const titleHref = link.href;
+const pageLink = !doiUrl && pub.links.pdf ? link : null; // arXiv / PMC / PubMed / PDF page
+const venue = pub.venue.replace(/^(in|In)\s+/, '').replace(/^Proceedings of the\s+/, 'Proc. ');
+---
+<li
+  class:list={['pub', { compact }]}
+  data-directions={pub.directions.join(' ')}
+  data-programs={pub.programs.join(' ')}
+  data-led={pub.labLed ? 'led' : 'collab'}
+  data-type={pub.type}
+  data-members={pub.members.join(' ')}
+  data-text={`${pub.title} ${pub.authors.join(' ')} ${pub.venue}`.toLowerCase()}
+>
+  <p class="pub-title">
+    <a href={titleHref} rel="noopener">{pub.title}</a>
+  </p>
+  {!compact && (
+    <p class="pub-authors">
+      {pub.authors.map((a, i) => {
+        const k = nameKey(a);
+        const slug = memberKeys.get(k);
+        const sep = i < pub.authors.length - 1 ? ', ' : '';
+        const marks = (
+          <>
+            {pub.coFirst?.includes(a) && <sup class="am" title="Co-first author"><span aria-hidden="true">†</span><span class="sr">(co-first author)</span></sup>}
+            {pub.coCorresponding?.includes(a) && <sup class="am" title="Co-corresponding author"><span aria-hidden="true">*</span><span class="sr">(co-corresponding author)</span></sup>}
+          </>
+        );
+        if (k === piKey) return <><strong>{a}</strong>{marks}{sep}</>;
+        if (slug) return <><a class="member" href={url(`/people/${slug}/`)}>{a}</a>{marks}{sep}</>;
+        return <>{a}{marks}{sep}</>;
+      })}
+    </p>
+  )}
+  <p class="pub-venue">
+    <span class="venue">{venue}</span>
+    <span class="tag">{TYPE_LABEL[pub.type]}</span>
+    {!pub.labLed && <span class="tag">Collaboration</span>}
+    {doiUrl && <a class="tag link" href={doiUrl} rel="noopener">DOI</a>}
+    {pageLink && <a class="tag link" href={pageLink.href} rel="noopener">{pageLink.kind}</a>}
+    {doiUrl && pub.links.pdf && <a class="tag link" href={pub.links.pdf} rel="noopener">{paperLink({ title: pub.title, links: { pdf: pub.links.pdf } }).kind}</a>}
+    {link.kind === 'Search' && <a class="tag link" href={link.href} rel="noopener" title="Search Google Scholar for this title">Find online</a>}
+    {pub.links.code && <a class="tag link" href={pub.links.code} rel="noopener">Code</a>}
+  </p>
+</li>
+
+<style>
+  .pub { padding: 1rem 0 1.1rem; border-bottom: 1px solid var(--rule); list-style: none; }
+  .pub[hidden] { display: none; }
+  .pub-title { font-size: 1.08rem; line-height: 1.4; margin: 0 0 0.35rem; color: var(--ink); }
+  .pub-title a { color: inherit; text-decoration-color: var(--rule); }
+  .pub-title a:hover { color: var(--accent-ink); text-decoration-color: currentColor; }
+  .pub-authors { font-family: var(--sans); font-size: 0.82rem; line-height: 1.55; color: var(--muted); margin: 0 0 0.35rem; }
+  .pub-authors strong { color: var(--ink); font-weight: 600; }
+  .pub-authors .member { color: var(--mark); text-decoration: none; font-weight: 500; }
+  .pub-authors .member:hover { text-decoration: underline; }
+  .pub-venue { font-family: var(--sans); font-size: 0.8rem; color: var(--muted); margin: 0; display: flex; flex-wrap: wrap; gap: 0.35rem 0.6rem; align-items: baseline; }
+  .venue { font-style: italic; font-family: var(--serif); font-size: 0.92rem; color: var(--ink-2); flex-basis: 100%; }
+  .tag { font-family: var(--mono); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+  .tag.link { color: var(--accent-ink); }
+  .compact .pub-venue .venue { flex-basis: auto; }
+  .compact { padding: 0.7rem 0; }
+  .am { font-size: 0.7em; margin-left: 0.05em; color: var(--ink-2); cursor: help; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+</style>

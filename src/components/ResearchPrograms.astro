@@ -1,0 +1,143 @@
+---
+/**
+ * Research overview: one column per program (I · II · III), each listing its directions.
+ * Every number is computed from src/data/publications.yaml (each paper counted once, by its primary direction).
+ */
+import { loadAll, directionStats, unassigned, roman, url, site, programColor, type Grant } from '../lib/data';
+
+const all = await loadAll();
+const { programs, directions, grants } = all;
+
+const stats = new Map(directions.map((d) => [d.id, directionStats(d.id, all)]));
+const maxTotal = Math.max(1, ...[...stats.values()].map((s) => s.total));
+const other = unassigned(all);
+const otherAreas = [...new Set(other.map((p) => p.area).filter(Boolean))];
+
+const ABBR: Record<string, string> = site.research?.funderAbbreviations ?? {};
+const baseFunder = (g: Grant) => g.funder.replace(/\s*\(.*\)\s*$/, '').trim();
+const badge = (g: Grant) => {
+  const f = baseFunder(g);
+  return `${ABBR[f] ?? f.replace(/^NIH\s+/, 'NIH ')} · ${g.role}`;
+};
+const span = (a: number, b: number) => (a === b ? `${a}` : `${a}–${String(b).slice(-2)}`);
+
+// "Supported by": funders grouped, NIH institutes/programs listed together
+const nihParts: string[] = [];
+const funders: string[] = [];
+for (const g of grants) {
+  const f = baseFunder(g);
+  if (f.startsWith('NIH ')) {
+    const part = f.slice(4).trim();
+    if (!nihParts.includes(part)) nihParts.push(part);
+  } else if (!funders.includes(f)) funders.push(f);
+}
+if (nihParts.length) funders.push(`NIH (${nihParts.join(', ')})`);
+// An explicit list in site.yaml (research.supportedBy) overrides the generated one
+const supportedBy = site.research?.supportedBy ?? funders;
+
+const columns = programs.map((p, i) => ({
+  p,
+  color: programColor(i),
+  dirs: directions.filter((d) => d.data.program === p.id),
+}));
+---
+<section class="rp" aria-label="Research programs and directions">
+  <p class="legend">
+    <span class="sw solid" aria-hidden="true"></span> Lab-led papers
+    <span class="sw hatched" aria-hidden="true"></span> Collaborations
+  </p>
+
+  <div class="cols">
+    {columns.map((c) => (
+      <article class="col" id={`program-${c.p.id}`} style={`--c:${c.color}`}>
+        <header class="col-head">
+          <p class="col-num">Program {roman(c.p.data.number)}</p>
+          <h2 class="col-title">{c.p.data.title}</h2>
+          <p class="col-sum">{c.p.data.summary}</p>
+        </header>
+        <ol class="dirs">
+          {c.dirs.map((d) => {
+            const s = stats.get(d.id)!;
+            return (
+              <li>
+                <a href={url(`/research/${d.id}/`)}>
+                  <span class="d-top">
+                    <span class="d-num">D{d.data.number}</span>
+                    <span class="d-title">{d.data.title}</span>
+                    <span class="d-arrow" aria-hidden="true">→</span>
+                  </span>
+                  <span class="d-sum">{d.data.summary}</span>
+                  <span class="bar" aria-hidden="true">
+                    {s.led > 0 && <span class="led" style={`width:${(s.led / maxTotal) * 100}%`}></span>}
+                    {s.collab > 0 && <span class="col-part" style={`width:${(s.collab / maxTotal) * 100}%`}></span>}
+                  </span>
+                  <span class="d-meta">
+                    <span class="n">{s.led} lab-led{s.collab > 0 && <span class="muted"> · {s.collab} collab.</span>}</span>
+                    {s.total > 0 && <span>{span(s.first, s.last)}</span>}
+                    {s.grants.map((g) => <span class="grant">{badge(g)}</span>)}
+                  </span>
+                </a>
+              </li>
+            );
+          })}
+        </ol>
+      </article>
+    ))}
+  </div>
+
+  {other.length > 0 && (
+    <p class="other">
+      <a href={url('/publications/?direction=__other')}>
+        + {other.length} collaborative papers outside these programs{otherAreas.length > 0 && ` (${otherAreas.join(' · ')})`} →
+      </a>
+    </p>
+  )}
+
+  {supportedBy.length > 0 && (
+    <p class="funders"><span class="label">Supported by</span> {supportedBy.join(' · ')}</p>
+  )}
+</section>
+
+<style>
+  .rp { margin: 0.5rem 0 1rem; }
+  .legend { font-family: var(--sans); font-size: 0.8rem; color: var(--muted); display: flex; align-items: center; gap: 0.45rem; margin: 0 0 1.4rem; }
+  .sw { display: inline-block; width: 1.4rem; height: 6px; border-radius: 3px; }
+  .sw.solid { background: var(--ink-2); }
+  .sw.hatched { margin-left: 0.9rem; background: repeating-linear-gradient(45deg, var(--ink-2) 0 2px, color-mix(in srgb, var(--ink-2) 22%, transparent) 2px 5px); }
+
+  .cols { display: grid; gap: 2.5rem; }
+  @media (min-width: 900px) {
+    .cols { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: auto auto; gap: 0 2rem; }
+    /* subgrid keeps the headers one height, so the first direction in every column starts on the same line */
+    .col { display: grid; grid-template-rows: subgrid; grid-row: span 2; align-content: start; }
+  }
+
+  .col-head { border-top: 3px solid var(--c); padding-top: 1rem; margin-bottom: 0.6rem; }
+  .col-num { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--c-ink); margin: 0 0 0.45rem; }
+  .col-title { font-family: var(--serif); font-size: clamp(1.35rem, 2vw, 1.6rem); font-weight: 400; line-height: 1.2; letter-spacing: -0.01em; color: var(--ink); margin: 0 0 0.6rem; }
+  .col-sum { font-family: var(--sans); font-size: 0.84rem; line-height: 1.55; color: var(--muted); margin: 0; }
+
+  .dirs { list-style: none; margin: 0.8rem 0 0; padding: 0; }
+  .dirs li { border-top: 1px solid var(--rule); }
+  .dirs a { display: grid; gap: 0.45rem; padding: 1rem 0.6rem 1.05rem; margin: 0 -0.6rem; text-decoration: none; color: var(--ink); border-radius: 6px; transition: background 0.2s; }
+  .dirs a:hover { background: color-mix(in srgb, var(--c) 7%, transparent); }
+  .dirs a:hover .d-arrow { transform: translateX(3px); color: var(--c-ink); }
+  .dirs a:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .d-top { display: grid; grid-template-columns: auto 1fr auto; gap: 0.55rem; align-items: baseline; }
+  .d-num { font-family: var(--mono); font-size: 0.72rem; color: var(--c-ink); font-weight: 500; }
+  .d-title { font-family: var(--serif); font-size: 1.1rem; line-height: 1.25; }
+  .d-arrow { color: var(--muted); transition: transform 0.2s, color 0.2s; }
+  .d-sum { font-family: var(--sans); font-size: 0.8rem; line-height: 1.5; color: var(--ink-2); }
+  .bar { display: flex; gap: 2px; height: 6px; margin-top: 0.15rem; }
+  .bar .led { background: var(--c); border-radius: 3px; }
+  .bar .col-part { border-radius: 3px; background: repeating-linear-gradient(45deg, var(--c) 0 2px, color-mix(in srgb, var(--c) 22%, transparent) 2px 5px); }
+  .d-meta { display: flex; flex-wrap: wrap; gap: 0.25rem 0.8rem; font-family: var(--mono); font-size: 0.7rem; color: var(--muted); }
+  .d-meta .n { color: var(--ink); }
+  .grant { color: var(--ink-2); }
+
+  .other { margin: 2rem 0 0; font-family: var(--sans); font-size: 0.85rem; }
+  .other a { color: var(--muted); }
+  .other a:hover { color: var(--accent-ink); }
+  .funders { margin: 1.2rem 0 0; padding-top: 1.2rem; border-top: 1px solid var(--rule); font-family: var(--sans); font-size: 0.85rem; color: var(--ink-2); line-height: 1.6; }
+  .funders .label { margin-right: 0.6rem; }
+</style>

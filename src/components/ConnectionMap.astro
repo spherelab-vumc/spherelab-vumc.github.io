@@ -1,0 +1,218 @@
+---
+/**
+ * The lab at a glance: people on the left, research directions on the right.
+ * Line thickness = number of papers that person has in that theme.
+ * Generated automatically from src/content/people, src/content/research and publications.yaml.
+ */
+import { loadAll, personDirections, url, programColor } from '../lib/data';
+
+interface Props { id?: string; caption?: boolean }
+const { id = 'map', caption = true } = Astro.props;
+const { people, directions, programs, pubs } = await loadAll();
+const progColor = new Map(programs.map((p, i) => [p.id, programColor(i)]));
+
+const members = people.filter((p) => p.data.role !== 'pi');
+const W = 680;
+const rowH = 34;
+const top = 24;
+const H = top * 2 + rowH * (members.length - 1);
+const xL = 222; // people dots
+const xR = 392; // direction dots
+const dirGap = (H - top * 2) / Math.max(directions.length - 1, 1);
+
+const pY = new Map(members.map((p, i) => [p.id, top + i * rowH]));
+const tY = new Map(directions.map((t, i) => [t.id, top + i * dirGap]));
+const shortName = (n: string) => {
+  const w = n.split(/\s+/).filter((x) => !/^[A-Z]\.$/.test(x));
+  return `${w[0]} ${w[w.length - 1]}`;
+};
+
+const links: { p: string; t: string; w: number }[] = [];
+for (const p of members) {
+  for (const [t, w] of personDirections(p, pubs)) if (tY.has(t)) links.push({ p: p.id, t, w });
+}
+const maxW = Math.max(1, ...links.map((l) => l.w));
+const stroke = (w: number) => 1 + (w / maxW) * 7;
+
+// Data for the client-side detail panel
+const payload = {
+  base: url('/'),
+  people: Object.fromEntries(members.map((p) => [p.id, { name: p.data.name, title: p.data.title, role: p.data.role }])),
+  directions: Object.fromEntries(directions.map((t) => [t.id, { title: t.data.title, short: t.data.short }])),
+  pubs: pubs
+    .filter((p) => p.members.length)
+    .map((p) => ({ t: p.title, y: p.year, m: p.members, th: p.directions, doi: p.links.doi || '' })),
+};
+---
+<figure class="cmap" id={id}>
+  <div class="cmap-grid">
+    <svg viewBox={`0 0 ${W} ${H}`} role="group" aria-label="Interactive map of lab members and research directions">
+      <g class="links" aria-hidden="true">
+        {links.map((l) => {
+          const y1 = pY.get(l.p)!, y2 = tY.get(l.t)!;
+          const mx = (xL + xR) / 2;
+          return (
+            <path
+              d={`M${xL},${y1} C${mx},${y1} ${mx},${y2} ${xR},${y2}`}
+              stroke-width={stroke(l.w)}
+              data-p={l.p}
+              data-t={l.t}
+            />
+          );
+        })}
+      </g>
+      <g class="nodes people">
+        {members.map((p) => (
+          <g class:list={['node', { alum: p.data.role === 'alumni' }]} data-p={p.id} tabindex="0" role="button" aria-pressed="false"
+             transform={`translate(${xL},${pY.get(p.id)})`}>
+            <title>{p.data.name}, {p.data.title}</title>
+            <rect x={-xL + 4} y={-rowH / 2} width={xL + 6} height={rowH} class="hit" />
+            <circle r="5" />
+            <text x="-14" dy="0.35em" text-anchor="end">{shortName(p.data.name)}</text>
+          </g>
+        ))}
+      </g>
+      <g class="nodes themes">
+        {directions.map((t) => (
+          <g class="node theme" data-t={t.id} tabindex="0" role="button" aria-pressed="false"
+             transform={`translate(${xR},${tY.get(t.id)})`}>
+            <title>{t.data.title}</title>
+            <rect x={-6} y={-rowH / 2} width={W - xR + 2} height={rowH} class="hit" />
+            <circle r="8" style={`stroke: ${progColor.get(t.data.program)}; fill: color-mix(in srgb, ${progColor.get(t.data.program)} 18%, var(--paper))`} />
+            <text x="16" dy="0.35em"><tspan class="num">D{t.data.number}</tspan> {t.data.short}</text>
+          </g>
+        ))}
+      </g>
+    </svg>
+    <div class="panel" aria-live="polite">
+      <p class="kicker">Explore</p>
+      <p class="panel-hint">Select a person to see their research directions and papers, or select a direction to see who works on it.</p>
+    </div>
+  </div>
+  {caption && (
+    <figcaption>
+      <b>Figure.</b> The lab at a glance. Lines connect members (left) to research directions (right); a thicker line
+      means more papers together. The map is generated automatically from the site's publication list.
+    </figcaption>
+  )}
+  <script type="application/json" class="cmap-data" set:html={JSON.stringify(payload)} />
+</figure>
+
+<script>
+  type Data = {
+    base: string;
+    people: Record<string, { name: string; title: string; role: string }>;
+    directions: Record<string, { title: string; short: string }>;
+    pubs: { t: string; y: number; m: string[]; th: string[]; doi: string }[];
+  };
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+
+  document.querySelectorAll<HTMLElement>('.cmap').forEach((fig) => {
+    const data: Data = JSON.parse(fig.querySelector('.cmap-data')!.textContent || '{}');
+    const svg = fig.querySelector('svg')!;
+    const panel = fig.querySelector('.panel')!;
+    const hint = panel.innerHTML;
+    const nodes = [...svg.querySelectorAll<SVGGElement>('.node')];
+    const paths = [...svg.querySelectorAll<SVGPathElement>('.links path')];
+    let active: SVGGElement | null = null;
+
+    const pubList = (list: Data['pubs']) =>
+      list.slice(0, 6).map((p) => {
+        const title = p.doi ? `<a href="https://doi.org/${esc(p.doi)}" rel="noopener">${esc(p.t)}</a>` : esc(p.t);
+        return `<li><span class="y">${p.y}</span>${title}</li>`;
+      }).join('');
+
+    function highlight(g: SVGGElement | null, persist: boolean) {
+      if (!g) {
+        svg.classList.remove('focus');
+        nodes.forEach((n) => n.classList.remove('on'));
+        paths.forEach((p) => p.classList.remove('on'));
+        if (persist) panel.innerHTML = hint;
+        return;
+      }
+      const pid = g.dataset.p, tid = g.dataset.t;
+      svg.classList.add('focus');
+      const on = new Set<string>();
+      paths.forEach((p) => {
+        const hit = (pid && p.dataset.p === pid) || (tid && p.dataset.t === tid);
+        p.classList.toggle('on', !!hit);
+        if (hit) { on.add('p:' + p.dataset.p); on.add('t:' + p.dataset.t); }
+      });
+      nodes.forEach((n) => n.classList.toggle('on', n === g || on.has(n.dataset.p ? 'p:' + n.dataset.p : 't:' + n.dataset.t)));
+      if (!persist) return;
+
+      if (pid) {
+        const person = data.people[pid];
+        const mine = data.pubs.filter((p) => p.m.includes(pid));
+        const ths = [...on].filter((k) => k.startsWith('t:')).map((k) => data.directions[k.slice(2)]?.short).filter(Boolean);
+        panel.innerHTML = `
+          <p class="kicker">${esc(person.title)}</p>
+          <h3><a href="${data.base}people/${pid}/">${esc(person.name)}</a></h3>
+          <p class="panel-sub">${ths.length ? 'Works on ' + ths.map(esc).join(', ') : 'Research directions coming soon'} · ${mine.length} paper${mine.length === 1 ? '' : 's'}</p>
+          <ol class="plist">${pubList(mine)}</ol>
+          <a class="more" href="${data.base}people/${pid}/">Full profile →</a>`;
+      } else if (tid) {
+        const theme = data.directions[tid];
+        const inTheme = data.pubs.filter((p) => p.th.includes(tid));
+        const who = [...on].filter((k) => k.startsWith('p:')).map((k) => data.people[k.slice(2)]?.name).filter(Boolean);
+        panel.innerHTML = `
+          <p class="kicker">Research direction</p>
+          <h3><a href="${data.base}research/${tid}/">${esc(theme.title)}</a></h3>
+          <p class="panel-sub">${who.length} member${who.length === 1 ? '' : 's'}: ${who.map(esc).join(', ')}</p>
+          <ol class="plist">${pubList(inTheme)}</ol>
+          <a class="more" href="${data.base}research/${tid}/">Open this direction →</a>`;
+      }
+    }
+
+    nodes.forEach((g) => {
+      const select = () => {
+        const same = active === g;
+        nodes.forEach((n) => n.setAttribute('aria-pressed', 'false'));
+        active = same ? null : g;
+        if (active) active.setAttribute('aria-pressed', 'true');
+        highlight(active, true);
+      };
+      g.addEventListener('click', select);
+      g.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); select(); }
+      });
+      g.addEventListener('mouseenter', () => { if (!active) highlight(g, false); });
+      g.addEventListener('mouseleave', () => { if (!active) highlight(null, false); else highlight(active, false); });
+    });
+  });
+</script>
+
+<style>
+  .cmap { margin: 1.5rem 0 2rem; }
+  .cmap-grid { display: grid; gap: 1.5rem; align-items: start; }
+  @media (min-width: 900px) { .cmap-grid { grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); gap: 2.5rem; } }
+  svg { width: 100%; height: auto; display: block; overflow: visible; }
+
+  .links path { fill: none; stroke: var(--accent); stroke-opacity: 0.22; transition: stroke-opacity 0.2s; stroke-linecap: round; }
+  svg.focus .links path { stroke-opacity: 0.05; }
+  svg.focus .links path.on { stroke-opacity: 0.7; }
+
+  .node { cursor: pointer; outline: none; }
+  .node .hit { fill: transparent; }
+  .node circle { fill: var(--paper); stroke: var(--accent); stroke-width: 1.6; transition: fill 0.2s; }
+  .node.theme circle { fill: var(--accent-soft); }
+  .node text { font-family: var(--sans); font-size: 15px; fill: var(--ink-2); transition: fill 0.2s, opacity 0.2s; }
+  .node.theme text { font-family: var(--serif); font-size: 16px; fill: var(--ink); }
+  .node .num { font-family: var(--mono); font-size: 12px; fill: var(--accent); }
+  .node.alum text { font-style: italic; fill: var(--muted); }
+  svg.focus .node:not(.on) text { opacity: 0.35; }
+  .node.on circle, .node[aria-pressed='true'] circle { fill: var(--accent); }
+  .node:focus-visible .hit { stroke: var(--focus); stroke-width: 1.5; rx: 4; }
+
+  .panel { border-top: 2px solid var(--ink); padding-top: 0.9rem; min-height: 14rem; }
+  .panel :global(h3) { font-size: 1.45rem; margin: 0.2rem 0 0.4rem; }
+  .panel :global(h3 a) { color: var(--ink); text-decoration: none; }
+  .panel :global(h3 a:hover) { color: var(--accent-ink); }
+  .panel :global(.panel-hint), .panel :global(.panel-sub) { font-family: var(--sans); font-size: 0.85rem; color: var(--muted); line-height: 1.5; }
+  .panel :global(.plist) { list-style: none; padding: 0; margin: 0.8rem 0; }
+  .panel :global(.plist li) { font-size: 0.95rem; line-height: 1.4; padding: 0.45rem 0; border-top: 1px solid var(--rule); display: grid; grid-template-columns: 3rem 1fr; }
+  .panel :global(.plist a) { color: var(--ink); text-decoration: none; }
+  .panel :global(.plist a:hover) { color: var(--accent-ink); text-decoration: underline; }
+  .panel :global(.y) { font-family: var(--mono); font-size: 0.72rem; color: var(--accent); padding-top: 0.2rem; }
+  .panel :global(.more) { font-family: var(--sans); font-size: 0.85rem; }
+</style>
