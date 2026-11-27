@@ -60,7 +60,6 @@ const linkLabels: Record<string, string> = { email: 'Email', website: 'Website',
     {mine.length > 0 && (
       <section class="section">
         <div class="section-head">
-          <span class="section-num">{isPi ? '' : mine.length}</span>
           <h2>{isPi ? 'Recent publications' : 'Publications with the lab'}</h2>
         </div>
         <ul class="plain">{mine.map((p) => <PubItem pub={p} memberKeys={memberKeys} piKey={piKey} />)}</ul>

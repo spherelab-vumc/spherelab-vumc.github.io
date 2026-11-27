@@ -4,7 +4,7 @@ import PubItem from '../components/PubItem.astro';
 import TeamMosaic from '../components/TeamMosaic.astro';
 import FeaturedPapers from '../components/FeaturedPapers.astro';
 import { getCollection } from 'astro:content';
-import { site, loadAll, url, fmtMonth, roman, statValue, homeSection, numberWord, programColor } from '../lib/data';
+import { site, loadAll, url, fmtMonth, roman, statValue, paperCount, homeSection, numberWord, programColor } from '../lib/data';
 
 const all = await loadAll();
 const { programs, directions, pubs, memberKeys, piKey } = all;
@@ -85,7 +85,7 @@ const recent = pubs.filter((p) => p.type !== 'abstract' && p.labLed && !p.featur
         <ul class="plain">
           {recent.map((p) => <PubItem pub={p} memberKeys={memberKeys} piKey={piKey} compact />)}
         </ul>
-        <p><a class="more" href={url('/publications/')}>All {pubs.length} publications →</a></p>
+        <p><a class="more" href={url('/publications/')}>All {paperCount(pubs.length)} publications →</a></p>
       </div>
     </section>
   </div>

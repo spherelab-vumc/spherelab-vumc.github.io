@@ -2,8 +2,8 @@
 import type { Person } from '../lib/data';
 import { initials, url } from '../lib/data';
 
-interface Props { person: Person; paperCount?: number }
-const { person, paperCount = 0 } = Astro.props;
+interface Props { person: Person }
+const { person } = Astro.props;
 const d = person.data;
 const years = d.until ? `${d.since ?? ''}–${d.until}` : d.since ? `since ${d.since}` : '';
 ---
@@ -16,10 +16,7 @@ const years = d.until ? `${d.since ?? ''}–${d.until}` : d.since ? `since ${d.s
   <span class="name">{d.name}</span>
   <span class="role">{d.title}{d.program && d.role !== 'alumni' ? `, ${d.program}` : ''}</span>
   {d.now && <span class="now">Now: {d.now}</span>}
-  <span class="meta-row">
-    {years && <span>{years}</span>}
-    {paperCount > 0 && <span>{paperCount} paper{paperCount > 1 ? 's' : ''}</span>}
-  </span>
+  {years && <span class="meta-row"><span>{years}</span></span>}
 </a>
 
 <style>

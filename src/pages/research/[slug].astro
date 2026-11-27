@@ -16,6 +16,8 @@ const { Content } = await render(direction);
 const program = programs.find((p) => p.id === direction.data.program)!;
 const pIndex = programs.indexOf(program);
 const s = directionStats(direction.id, all);
+// Below this many papers, show only the start year so a young direction doesn't read as thin.
+const MIN_PAPERS_FOR_COUNTS = 5;
 const papers = pubs.filter((p) => p.directions.includes(direction.id));
 const team = people.filter((p) => s.members.includes(p.id) && p.data.role !== 'alumni');
 const i = directions.findIndex((d) => d.id === direction.id);
@@ -33,7 +35,11 @@ const prev = directions[i - 1], next = directions[i + 1];
         <p class="lede">{direction.data.summary}</p>
       </div>
       <aside class="sidenote">
-        <p><strong>{s.led}</strong> lab-led · <strong>{s.collab}</strong> collaborative papers{s.total > 0 && <>, {s.first}–{s.last}</>}</p>
+        {s.total >= MIN_PAPERS_FOR_COUNTS ? (
+          <p><strong>{s.led}</strong> lab-led · <strong>{s.collab}</strong> collaborative papers, {s.first}–{s.last}</p>
+        ) : s.total > 0 && (
+          <p>Publishing since <strong>{s.first}</strong></p>
+        )}
         {s.grants.map((g) => (
           <p><strong>{g.funder}</strong><br />{g.title} ({g.role})</p>
         ))}
@@ -55,7 +61,7 @@ const prev = directions[i - 1], next = directions[i + 1];
       <section class="section">
         <div class="section-head"><span class="section-num">{team.length}</span><h2>People</h2></div>
         <div class="grid">
-          {team.map((p) => <PersonCard person={p} paperCount={papers.filter((x) => x.members.includes(p.id)).length} />)}
+          {team.map((p) => <PersonCard person={p} />)}
         </div>
       </section>
     )}

@@ -1,7 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
 import PubItem from '../components/PubItem.astro';
-import { loadAll, roman, linkById, TYPE_LABEL } from '../lib/data';
+import { loadAll, roman, linkById, TYPE_LABEL, paperCount } from '../lib/data';
 
 const { people, programs, directions, pubs, memberKeys, piKey } = await loadAll();
 const years = [...new Set(pubs.map((p) => p.year))].sort((a, b) => b - a);
@@ -16,7 +16,7 @@ const scholar = linkById('scholar');
         <p class="kicker">Publications</p>
         <h1>Publications</h1>
         <p class="lede">
-          <span class="count" data-count>{pubs.length}</span> publications. Lab members are
+          <span class="count" data-count>{paperCount(pubs.length)}</span> publications. Lab members are
           <span class="mk">highlighted</span>.{scholar && <> See also <a href={scholar.href} rel="noopener">{scholar.label}</a>.</>}
         </p>
         <p class="marks-key"><span aria-hidden="true">†</span> co-first authors · <span aria-hidden="true">*</span> co-corresponding authors
@@ -104,7 +104,8 @@ const scholar = linkById('scholar');
       if (ok) n++;
     }
     years.forEach((y) => (y.hidden = !y.querySelector('.pub:not([hidden])')));
-    count.textContent = String(n);
+    // Same rounding as paperCount() in src/lib/data.ts (that module reads files, so it can't load in the browser).
+    count.textContent = n >= 100 ? `${Math.floor(n / 10) * 10}+` : String(n);
     empty.hidden = n > 0;
   }
   [...progBtns, ...typeBtns, ...ledBtns].forEach((b) =>

@@ -262,13 +262,18 @@ export function personDirections(person: Person, pubs: Publication[]): Map<strin
   return m;
 }
 
+/** Paper counts of 100 or more round down to the nearest 10 with a "+" (103 -> "100+"), so the site needn't change with every paper. */
+export function paperCount(n: number): string {
+  return n >= 100 ? `${Math.floor(n / 10) * 10}+` : String(n);
+}
+
 /** Resolve "auto:publications" style stat values. */
 export function statValue(v: string, all: All): string {
-  if (v === 'auto:publications') return String(all.pubs.length);
-  if (v === 'auto:lab-led') return String(all.pubs.filter((p) => p.labLed).length);
+  if (v === 'auto:publications') return paperCount(all.pubs.length);
+  if (v === 'auto:lab-led') return paperCount(all.pubs.filter((p) => p.labLed).length);
   if (v === 'auto:members') return String(all.people.filter((p) => p.data.role !== 'alumni').length);
-  if (v === 'auto:peer-reviewed') return String(all.pubs.filter((p) => p.type === 'journal' || p.type === 'conference').length);
-  if (v === 'auto:preprints') return String(all.pubs.filter((p) => p.type === 'preprint').length);
+  if (v === 'auto:peer-reviewed') return paperCount(all.pubs.filter((p) => p.type === 'journal' || p.type === 'conference').length);
+  if (v === 'auto:preprints') return paperCount(all.pubs.filter((p) => p.type === 'preprint').length);
   return v;
 }
 
