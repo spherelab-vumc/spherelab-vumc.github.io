@@ -53,10 +53,11 @@ home:
 # Numbers strip on the Home page. "auto:..." values are computed from the data:
 #   auto:publications (all works), auto:peer-reviewed (journal + conference), auto:preprints,
 #   auto:lab-led, auto:members (current, non-alumni)
+#   Paper counts of 100 or more display rounded down to the nearest 10 with a "+" (e.g. 103 -> 100+).
 stats:
   - { value: "auto:publications", label: "publications" }
   - { value: "auto:lab-led", label: "lab-led papers" }
-  - { value: "$15M+", label: "research led or co-led" }
+  - { value: "$14M+", label: "research led or co-led" }
   - { value: "auto:members", label: "current members" }
 
 # ── Research page ───────────────────────────────────────────────────────────

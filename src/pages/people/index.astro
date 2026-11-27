@@ -8,7 +8,6 @@ import { loadAll, ROLE_ORDER, ROLE_LABEL, initials, url, mentees } from '../../l
 const { people, pubs } = await loadAll();
 const pi = people.find((p) => p.data.role === 'pi')!;
 const { Content: PiBio } = await render(pi);
-const count = (id: string) => pubs.filter((p) => p.members.includes(id)).length;
 const groups = ROLE_ORDER.filter((r) => r !== 'pi')
   .map((r) => ({ role: r, list: people.filter((p) => p.data.role === r) }))
   .filter((g) => g.list.length);
@@ -53,7 +52,7 @@ const groups = ROLE_ORDER.filter((r) => r !== 'pi')
       <section class="section">
         <div class="section-head"><span class="section-num">{g.list.length}</span><h2>{ROLE_LABEL[g.role]}</h2></div>
         <div class="grid">
-          {g.list.map((p) => <PersonCard person={p} paperCount={count(p.id)} />)}
+          {g.list.map((p) => <PersonCard person={p} />)}
         </div>
         {g.role === 'alumni' && mentees.length > 0 && (
           <div class="mentees">
